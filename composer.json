@@ -1,0 +1,17 @@
+{
+    "name": "coderiekelt/libanimelist",
+    "description": "A library to interact with MyAnimeList from any PHP application.",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Riekelt Brands",
+            "email": "hello@riekeltbrands.nl"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "LibAnimeList\\": "src/"
+        }
+    }
+}
