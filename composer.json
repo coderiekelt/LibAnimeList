@@ -1,14 +1,16 @@
 {
     "name": "coderiekelt/libanimelist",
-    "description": "A library to interact with MyAnimeList from any PHP application.",
-    "type": "library",
+    "description": "A library to interact with the MyAnimeList API",
     "authors": [
         {
             "name": "Riekelt Brands",
-            "email": "hello@riekeltbrands.nl"
+            "email": "riekelt@simulcasts.online"
         }
     ],
-    "require": {},
+    "require": {
+        "symfony/serializer": "^4.0",
+        "symfony/property-access": "^4.0"
+    },
     "autoload": {
         "psr-4": {
             "LibAnimeList\\": "src/"

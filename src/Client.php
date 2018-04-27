@@ -1,58 +1,72 @@
 <?php
 
 namespace LibAnimeList;
-use LibAnimeList\Model\BaseModel;
-use LibAnimeList\Model\VerifyCredentialsResponseModel;
+
+use LibAnimeList\Exception\MissingCredentialsException;
+use LibAnimeList\Model\Internal\Credentials;
+use LibAnimeList\Model\MyAnimeList\Response\User;
+use Symfony\Component\Serializer\Encoder\XmlEncoder;
+use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
+use Symfony\Component\Serializer\Serializer;
 
 /**
- * Class AnimeListClient
+ * Class Client
  * @package LibAnimeList
  */
-class AnimeListClient
+class Client
 {
-    public const METHOD_POST = 'POST';
-    public const METHOD_GET = 'GET';
+    const METHOD_POST = 'POST';
+    const METHOD_GET = 'GET';
 
     /**
-     * @var AnimeListCredentials|null
+     * @var Credentials
      */
     private $credentials;
 
     /**
-     * AnimeListClient constructor.
-     * @param null $credentials
+     * @var Serializer
      */
-    public function __construct($credentials = null)
+    private $serializer;
+
+    /**
+     * Client constructor.
+     * @param Credentials|null $credentials
+     */
+    public function __construct(Credentials $credentials = null)
     {
         if ($credentials !== null) {
             $this->credentials = $credentials;
         }
-    }
 
-    public function verifyCredentials()
-    {
-        if ($this->credentials === null) {
-            throw new \DomainException('Could not verify null credentials.');
-        }
+        $encoders = array(new XmlEncoder());
+        $normalizers = array(new ObjectNormalizer());
 
-        $result = $this->doXmlRequest(
-            self::METHOD_GET,
-            'account/verify_credentials',
-            [],
-            VerifyCredentialsResponseModel::class
-        );
-
-        return !$result->hasMisser('id');
+        $this->serializer = new Serializer($normalizers, $encoders);
     }
 
     /**
-     * @param $username
-     * @param $password
-     * @return AnimeListCredentials
+     * @throws MissingCredentialsException
+     *
+     * @return bool
      */
-    public static function createCredentials($username, $password)
+    public function verifyCredentials()
     {
-        return new AnimeListCredentials($username, $password);
+        if ($this->credentials === null) {
+            throw new MissingCredentialsException();
+        }
+
+        $response = $this->doXmlRequest(
+            self::METHOD_POST,
+            'account/verify_credentials',
+            [],
+            User::class
+        );
+
+        if (!empty($response->getId())) {
+            $this->credentials->setValid(true);
+        }
+
+        return $this->credentials->isValid();
     }
 
     /**
@@ -67,15 +81,8 @@ class AnimeListClient
     {
         $xml = $this->sendCurlRequest($method, $endpoint, $parameters);
 
-        /**
-         * @var $model BaseModel
-         */
-        $model = new $model();
-        $model->fromXml($xml);
-
-        return $model;
+        return (object)$this->serializer->deserialize($xml, $model, 'xml');
     }
-
     /**
      * @param $method
      * @param $endpoint
@@ -96,6 +103,9 @@ class AnimeListClient
 
         curl_setopt($curlClient, CURLOPT_POSTFIELDS, http_build_query($parameters));
 
+        curl_setopt($curlClient, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($curlClient, CURLOPT_SSL_VERIFYPEER, false);
+
         if ($this->credentials !== null) {
             curl_setopt($curlClient, CURLOPT_USERPWD, (string)$this->credentials);
             curl_setopt($curlClient, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
@@ -106,5 +116,13 @@ class AnimeListClient
         curl_close($curlClient);
 
         return $output;
+    }
+
+    /**
+     * @return Credentials
+     */
+    public function getCredentials()
+    {
+        return $this->credentials;
     }
 }
