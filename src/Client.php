@@ -66,7 +66,7 @@ class Client
             $this->credentials->setValid(true);
         }
 
-        return $this->credentials->isValid();
+        return $response;
     }
 
     /**
