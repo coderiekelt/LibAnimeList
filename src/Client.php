@@ -29,6 +29,11 @@ class Client
     private $serializer;
 
     /**
+     * @var bool
+     */
+    public $insecure = false;
+
+    /**
      * Client constructor.
      * @param Credentials|null $credentials
      */
@@ -66,7 +71,7 @@ class Client
             $this->credentials->setValid(true);
         }
 
-        return $response;
+        return $this->credentials->isValid();
     }
 
     /**
@@ -103,8 +108,11 @@ class Client
 
         curl_setopt($curlClient, CURLOPT_POSTFIELDS, http_build_query($parameters));
 
-        curl_setopt($curlClient, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($curlClient, CURLOPT_SSL_VERIFYPEER, false);
+        // For dev purposes, Windows is a bitch
+        if ($this->insecure) {
+            curl_setopt($curlClient, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($curlClient, CURLOPT_SSL_VERIFYPEER, false);
+        }
 
         if ($this->credentials !== null) {
             curl_setopt($curlClient, CURLOPT_USERPWD, (string)$this->credentials);
